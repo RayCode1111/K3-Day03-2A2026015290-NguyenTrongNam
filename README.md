@@ -10,6 +10,16 @@ Copy the `.env.example` to `.env` and fill in your API keys:
 cp .env.example .env
 ```
 
+This submission uses OpenAI by default:
+
+```env
+OPENAI_API_KEY=your_openai_api_key_here
+DEFAULT_PROVIDER=openai
+DEFAULT_MODEL=gpt-4o
+```
+
+The unit tests and evaluation script use deterministic scripted providers, so they do not call the API.
+
 ### 2. Install Dependencies
 ```bash
 pip install -r requirements.txt
@@ -18,9 +28,9 @@ pip install -r requirements.txt
 ### 3. Directory Structure
 - `src/tools/`: Extension point for your custom tools.
 
-## 🏠 Running with Local Models (CPU)
+## 🏠 Optional: Running with Local Models (CPU)
 
-If you don't want to use OpenAI or Gemini, you can run open-source models (like Phi-3) directly on your CPU using `llama-cpp-python`.
+Local GGUF models are optional and are not required for this OpenAI-based submission. If you don't want to use OpenAI or Gemini, you can run open-source models (like Phi-3) directly on your CPU using `llama-cpp-python`.
 
 ### 1. Download the Model
 Download the **Phi-3-mini-4k-instruct-q4.gguf** (approx 2.2GB) from Hugging Face:

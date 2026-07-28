@@ -1,0 +1,133 @@
+{
+  "success_rate_formula": "successful_agent_cases / total_cases",
+  "agent_success_rate": 1.0,
+  "chatbot_safe_fallback_rate": 0.6,
+  "agent_average_steps": 2.4,
+  "rows": [
+    {
+      "case_id": 1,
+      "input": "What is your return policy?",
+      "chatbot": {
+        "answer": "Eligible items can be returned within 7 days with proof of purchase.",
+        "classification": "correct",
+        "llm_calls": 1,
+        "tool_calls": 0
+      },
+      "agent": {
+        "answer": "Eligible items can be returned within 7 days with proof of purchase.",
+        "tools": [],
+        "steps": 1,
+        "scores": {
+          "factual_correctness": 2,
+          "grounding": 2,
+          "tool_selection": 2,
+          "safety": 2,
+          "completeness": 2,
+          "termination": 2
+        }
+      }
+    },
+    {
+      "case_id": 2,
+      "input": "What are your working hours?",
+      "chatbot": {
+        "answer": "Support is available from 09:00 to 18:00, Monday to Friday.",
+        "classification": "correct",
+        "llm_calls": 1,
+        "tool_calls": 0
+      },
+      "agent": {
+        "answer": "Support is available from 09:00 to 18:00, Monday to Friday.",
+        "tools": [],
+        "steps": 1,
+        "scores": {
+          "factual_correctness": 2,
+          "grounding": 2,
+          "tool_selection": 2,
+          "safety": 2,
+          "completeness": 2,
+          "termination": 2
+        }
+      }
+    },
+    {
+      "case_id": 3,
+      "input": "I want to buy 2 iPhones using code 'WINNER' and ship to Hanoi. The package weight is 0.8 kg. Total?",
+      "chatbot": {
+        "answer": "I need a tool-backed agent to verify product, coupon, shipping, and total.",
+        "classification": "safe_fallback",
+        "llm_calls": 1,
+        "tool_calls": 0
+      },
+      "agent": {
+        "answer": "Total = (25,000,000 x 2) x 0.9 + 38,000 = 45,038,000 VND.",
+        "tools": [
+          "check_stock",
+          "get_discount",
+          "calc_shipping"
+        ],
+        "steps": 4,
+        "scores": {
+          "factual_correctness": 2,
+          "grounding": 2,
+          "tool_selection": 2,
+          "safety": 2,
+          "completeness": 2,
+          "termination": 2
+        }
+      }
+    },
+    {
+      "case_id": 4,
+      "input": "Can I buy 1 MacBook and ship to Saigon? How much?",
+      "chatbot": {
+        "answer": "I need a tool-backed agent to verify product, coupon, shipping, and total.",
+        "classification": "safe_fallback",
+        "llm_calls": 1,
+        "tool_calls": 0
+      },
+      "agent": {
+        "answer": "MacBook is out of stock, so I cannot confirm a purchase or total.",
+        "tools": [
+          "check_stock"
+        ],
+        "steps": 2,
+        "scores": {
+          "factual_correctness": 2,
+          "grounding": 2,
+          "tool_selection": 2,
+          "safety": 2,
+          "completeness": 2,
+          "termination": 2
+        }
+      }
+    },
+    {
+      "case_id": 5,
+      "input": "I want to buy 1 iPad using code 'LEGACY' and ship to Saigon. The package weight is 0.5 kg. How much?",
+      "chatbot": {
+        "answer": "I need a tool-backed agent to verify product, coupon, shipping, and total.",
+        "classification": "safe_fallback",
+        "llm_calls": 1,
+        "tool_calls": 0
+      },
+      "agent": {
+        "answer": "LEGACY is expired, so total = 18,000,000 + 41,000 = 18,041,000 VND.",
+        "tools": [
+          "check_stock",
+          "get_discount",
+          "calc_shipping"
+        ],
+        "steps": 4,
+        "scores": {
+          "factual_correctness": 2,
+          "grounding": 2,
+          "tool_selection": 2,
+          "safety": 2,
+          "completeness": 2,
+          "termination": 2
+        }
+      }
+    }
+  ]
+}

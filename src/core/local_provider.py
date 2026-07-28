@@ -1,8 +1,12 @@
 import time
 import os
 from typing import Dict, Any, Optional, Generator
-from llama_cpp import Llama
 from src.core.llm_provider import LLMProvider
+
+try:
+    from llama_cpp import Llama
+except ImportError:  # pragma: no cover - only needed when using local GGUF models.
+    Llama = None
 
 class LocalProvider(LLMProvider):
     """
@@ -18,6 +22,12 @@ class LocalProvider(LLMProvider):
             n_threads: Number of CPU threads to use. Defaults to all available.
         """
         super().__init__(model_name=os.path.basename(model_path))
+
+        if Llama is None:
+            raise ImportError(
+                "llama-cpp-python is not installed. Use OpenAIProvider for this lab "
+                "or install llama-cpp-python before selecting LocalProvider."
+            )
         
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"Model file not found at {model_path}. Please download it first.")

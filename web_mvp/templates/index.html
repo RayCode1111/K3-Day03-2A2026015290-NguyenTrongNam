@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lab 03 MVP - Chatbot vs ReAct Agent</title>
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Lab 03 MVP</p>
+            <h1>Chatbot vs ReAct Agent</h1>
+          </div>
+          <div class="status" id="status">Sẵn sàng</div>
+        </header>
+
+        <section class="composer" aria-label="Khu vực nhập câu hỏi">
+          <div class="mode-switch" role="tablist" aria-label="Chọn chế độ chạy">
+            <button class="mode active" data-mode="agent" type="button">ReAct Agent</button>
+            <button class="mode" data-mode="chatbot" type="button">Chatbot</button>
+          </div>
+
+          <textarea id="question" rows="4">Tôi muốn mua 2 iPhone, dùng mã WINNER và giao tới Hà Nội. Tổng tiền là bao nhiêu?</textarea>
+
+          <div class="actions">
+            <div class="samples">
+              <button type="button" data-sample="Tôi muốn mua 2 iPhone, dùng mã WINNER và giao tới Hà Nội. Tổng tiền là bao nhiêu?">Đơn iPhone</button>
+              <button type="button" data-sample="MacBook còn hàng không?">Tồn kho</button>
+              <button type="button" data-sample="Mã LEGACY có dùng được không?">Mã giảm giá</button>
+            </div>
+            <button class="run" id="run" type="button">Chạy</button>
+          </div>
+        </section>
+
+        <section class="result-grid">
+          <article class="panel answer-panel">
+            <div class="panel-title">
+              <h2>Câu trả lời</h2>
+              <span id="provider">Chưa gọi API</span>
+            </div>
+            <div class="answer" id="answer">Chọn chế độ, nhập câu hỏi, rồi bấm Chạy.</div>
+          </article>
+
+          <article class="panel metrics-panel">
+            <div class="panel-title">
+              <h2>Đo lường</h2>
+            </div>
+            <dl class="metrics" id="metrics">
+              <div><dt>LLM calls</dt><dd>-</dd></div>
+              <div><dt>Tool calls</dt><dd>-</dd></div>
+              <div><dt>Steps</dt><dd>-</dd></div>
+              <div><dt>Mode</dt><dd>-</dd></div>
+            </dl>
+          </article>
+        </section>
+
+        <section class="panel trace-panel">
+          <div class="panel-title">
+            <h2>Trace</h2>
+            <button type="button" id="toggleRaw">Raw JSON</button>
+          </div>
+          <div class="trace" id="trace">Trace của Agent sẽ xuất hiện ở đây.</div>
+        </section>
+      </section>
+
+      <aside class="tools">
+        <h2>Tool Registry</h2>
+        <div id="tools">Đang tải tool...</div>
+      </aside>
+    </main>
+
+    <script>
+      const state = {
+        mode: "agent",
+        lastTrace: [],
+        showRaw: false,
+      };
+
+      const question = document.querySelector("#question");
+      const statusEl = document.querySelector("#status");
+      const answerEl = document.querySelector("#answer");
+      const metricsEl = document.querySelector("#metrics");
+      const traceEl = document.querySelector("#trace");
+      const providerEl = document.querySelector("#provider");
+      const runButton = document.querySelector("#run");
+
+      document.querySelectorAll(".mode").forEach((button) => {
+        button.addEventListener("click", () => {
+          state.mode = button.dataset.mode;
+          document.querySelectorAll(".mode").forEach((item) => item.classList.remove("active"));
+          button.classList.add("active");
+        });
+      });
+
+      document.querySelectorAll("[data-sample]").forEach((button) => {
+        button.addEventListener("click", () => {
+          question.value = button.dataset.sample;
+          question.focus();
+        });
+      });
+
+      document.querySelector("#toggleRaw").addEventListener("click", () => {
+        state.showRaw = !state.showRaw;
+        renderTrace(state.lastTrace);
+      });
+
+      runButton.addEventListener("click", async () => {
+        const text = question.value.trim();
+        if (!text) {
+          setStatus("Nhập câu hỏi trước", true);
+          return;
+        }
+
+        setLoading(true);
+        try {
+          const response = await fetch(`/api/${state.mode}`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ question: text }),
+          });
+          const data = await response.json();
+          if (!data.ok) throw new Error(data.message || data.error || "Không chạy được request.");
+
+          answerEl.textContent = data.answer;
+          providerEl.textContent = `${data.provider} / ${data.model}`;
+          renderMetrics(data);
+          state.lastTrace = data.trace || [];
+          renderTrace(state.lastTrace);
+          setStatus("Hoàn tất", false);
+        } catch (error) {
+          answerEl.textContent = error.message;
+          providerEl.textContent = "Lỗi";
+          state.lastTrace = [];
+          renderTrace([]);
+          setStatus("Có lỗi", true);
+        } finally {
+          setLoading(false);
+        }
+      });
+
+      async function loadTools() {
+        const target = document.querySelector("#tools");
+        try {
+          const response = await fetch("/api/tools");
+          const data = await response.json();
+          if (!data.ok) throw new Error(data.message || data.error);
+          target.innerHTML = data.tools.map((tool) => `
+            <section class="tool-item">
+              <strong>${escapeHtml(tool.name)}</strong>
+              <p>${escapeHtml(tool.description)}</p>
+            </section>
+          `).join("");
+        } catch (error) {
+          target.textContent = error.message;
+        }
+      }
+
+      function renderMetrics(data) {
+        const metrics = data.metrics || {};
+        metricsEl.innerHTML = `
+          <div><dt>LLM calls</dt><dd>${metrics.llm_calls ?? "-"}</dd></div>
+          <div><dt>Tool calls</dt><dd>${metrics.tool_calls ?? "-"}</dd></div>
+          <div><dt>Steps</dt><dd>${metrics.steps ?? "-"}</dd></div>
+          <div><dt>Mode</dt><dd>${escapeHtml(data.mode || "-")}</dd></div>
+        `;
+      }
+
+      function renderTrace(trace) {
+        if (!trace.length) {
+          traceEl.textContent = state.mode === "chatbot"
+            ? "Chatbot baseline không gọi tool nên không có trace."
+            : "Chưa có trace.";
+          return;
+        }
+
+        if (state.showRaw) {
+          traceEl.innerHTML = `<pre>${escapeHtml(JSON.stringify(trace, null, 2))}</pre>`;
+          return;
+        }
+
+        traceEl.innerHTML = trace.map((step) => {
+          const action = step.action
+            ? `<div class="trace-line"><b>Action</b><code>${escapeHtml(step.action.tool)}(${escapeHtml(JSON.stringify(step.action.args))})</code></div>`
+            : "";
+          const observation = step.observation
+            ? `<div class="trace-line"><b>Observation</b><pre>${escapeHtml(JSON.stringify(step.observation, null, 2))}</pre></div>`
+            : "";
+          const finalAnswer = step.final_answer
+            ? `<div class="trace-line"><b>Final</b><p>${escapeHtml(step.final_answer)}</p></div>`
+            : "";
+          return `
+            <article class="trace-step">
+              <h3>Step ${step.step}</h3>
+              <div class="trace-line"><b>LLM</b><pre>${escapeHtml(step.llm_output || "")}</pre></div>
+              ${action}
+              ${observation}
+              ${finalAnswer}
+            </article>
+          `;
+        }).join("");
+      }
+
+      function setLoading(isLoading) {
+        runButton.disabled = isLoading;
+        runButton.textContent = isLoading ? "Đang chạy..." : "Chạy";
+        if (isLoading) setStatus("Đang gọi API", false);
+      }
+
+      function setStatus(text, isError) {
+        statusEl.textContent = text;
+        statusEl.classList.toggle("error", Boolean(isError));
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      loadTools();
+    </script>
+  </body>
+</html>

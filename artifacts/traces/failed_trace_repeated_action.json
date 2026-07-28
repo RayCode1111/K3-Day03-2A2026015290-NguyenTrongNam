@@ -1,0 +1,25 @@
+[
+  {
+    "step": 1,
+    "action": {
+      "tool": "check_stock",
+      "args": {
+        "item_name": "iPhone"
+      }
+    },
+    "observation": "ok"
+  },
+  {
+    "step": 2,
+    "action": {
+      "tool": "check_stock",
+      "args": {
+        "item_name": "iPhone"
+      }
+    },
+    "observation": {
+      "ok": false,
+      "error": "repeated_action"
+    }
+  }
+]
